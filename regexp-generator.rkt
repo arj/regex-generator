@@ -83,7 +83,7 @@
   (for-each
    (λ (x)
      (begin
-       (display (tojava x))
+       (display (pp x))
        (display ";")
        (newline)))
    (enum->list re/e (string->number (car xs)))))
