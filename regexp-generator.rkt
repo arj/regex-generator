@@ -39,7 +39,7 @@
   (cond
     [(star? s) (star (star-sub s))]
     [(eps? s) (mk-eps)]
-    [(empty? s) (mk-empty)]
+    [(empty? s) (mk-eps)]
     [else (star s)]))
 
 (define (mk-symbol c)
