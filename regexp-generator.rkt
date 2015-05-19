@@ -2,6 +2,7 @@
 
 (provide main)
 
+(require racket/string)
 (require data/enumerate)
 (require data/enumerate/lib)
 
@@ -22,6 +23,19 @@
 
 (define regex?
   (or/c star? eps? empty? union? symbol? concat?))
+
+(define (nullable? r)
+  (cond
+    [(eps? r) #t]
+    [(empty? r) #f]
+    [(star? r) #t]
+    [(symbol? r) #f]
+    [(union? r) (or (nullable? (union-l r)) (nullable? (union-r r)))]
+    [(concat? r) (and (nullable? (union-l r)) (nullable? (union-r r)))]
+    ))
+
+;; Definition of omega regular expression
+(struct oreg (l r))
 
 ;; Smart ctors for symbols
 
@@ -63,9 +77,9 @@
 ;; Enumerate regexp symbols using characters
 (define resymbol/e
   (pam/e
-     symbol
-     (take/e char/e sigma-size)
-     #:contract symbol?))
+   symbol
+   (take/e char/e sigma-size)
+   #:contract symbol?))
 
 ;; Enumeration for regular expressions
 (define re/e
@@ -90,6 +104,15 @@
    #:two-way-enum? #f
    ))
 
+(define one-oreg/e
+  (delay/e
+   (pam/e
+    (λ (p) (oreg (car p) (cdr p)))
+    (cons/e (except/e re/e nullable?) re/e #:ordering cons/ordering)
+    #:contract regex?)
+   #:two-way-enum? #f
+   ))
+
 ;; Pretty printer
 (define (pp re)
   (cond
@@ -105,6 +128,11 @@
      (string-append "(" (pp (union-l re)) " + " (pp (union-r re)) ")")]
     [(concat? re)
      (string-append "(" (pp (concat-l re)) "." (pp (concat-r re)) ")")]
+    ;; oreg
+    [(oreg? re)
+     (string-append (pp (oreg-l re)) "." (pp (oreg-r re)) "^ω")]
+    [(list? re)
+     (string-join (map pp re) " + ")]
     ))
 
 ;; To java expression
