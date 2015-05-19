@@ -5,6 +5,13 @@
 (require data/enumerate)
 (require data/enumerate/lib)
 
+;; SETTINGS
+
+;; Standard odering when creating pairs of regular expressions.
+(define cons/ordering 'square)
+(define no-simplify? #t)
+(define sigma-size 26)
+
 ;; Definition of standard regular expression
 (struct eps ())
 (struct empty ())
@@ -16,18 +23,7 @@
 (define regex?
   (or/c star? eps? empty? union? symbol? concat?))
 
-;; Standard odering when creating pairs of regular expressions.
-(define cons/ordering
-  'square)
-
 ;; Smart ctors for symbols
-
-(define (mk-union l r)
-  (cond
-    [(empty? l) r]
-    [(empty? r) l]
-    [else (union l r)]
-    ))
 
 (define (mk-eps)
   (eps))
@@ -35,21 +31,41 @@
 (define (mk-empty)
   (empty))
 
-(define (mk-star s)
-  (cond
-    [(star? s) (star (star-sub s))]
-    [(eps? s) (mk-eps)]
-    [(empty? s) (mk-eps)]
-    [else (star s)]))
-
 (define (mk-symbol c)
   (symbol c))
 
+(define (mk-star s)
+  (if no-simplify?
+      (star s)
+      (cond
+        [(star? s) (star (star-sub s))]
+        [(eps? s) (mk-eps)]
+        [(empty? s) (mk-eps)]
+        [else (star s)])))
+
+(define (mk-union l r)
+  (if no-simplify?
+      (union l r)
+      (cond
+        [(empty? l) r]
+        [(empty? r) l]
+        [else (union l r)]
+        )))
+
 (define (mk-concat l r)
-  (cond
-    [(eps? l) r]
-    [(or (empty? l) (empty? r)) (mk-empty)]
-    [else (concat l r)]))
+  (if no-simplify?
+      (concat l r)
+      (cond
+        [(eps? l) r]
+        [(or (empty? l) (empty? r)) (mk-empty)]
+        [else (concat l r)])))
+
+;; Enumerate regexp symbols using characters
+(define resymbol/e
+  (pam/e
+     symbol
+     (take/e char/e sigma-size)
+     #:contract symbol?))
 
 ;; Enumeration for regular expressions
 (define re/e
@@ -57,10 +73,7 @@
    (or/e
     (single/e (eps))
     (single/e (empty))
-    (pam/e
-     symbol
-     (take/e char/e 5)
-     #:contract symbol?)
+    resymbol/e
     (pam/e
      mk-star
      re/e
