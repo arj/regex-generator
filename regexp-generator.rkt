@@ -11,7 +11,7 @@
 ;; Standard odering when creating pairs of regular expressions.
 (define cons/ordering 'square)
 (define no-simplify? #t)
-(define sigma-size 26)
+(define sigma-size 5)
 
 ;; Definition of standard regular expression
 (struct eps ())
@@ -31,7 +31,7 @@
     [(star? r) #t]
     [(symbol? r) #f]
     [(union? r) (or (nullable? (union-l r)) (nullable? (union-r r)))]
-    [(concat? r) (and (nullable? (union-l r)) (nullable? (union-r r)))]
+    [(concat? r) (and (nullable? (concat-l r)) (nullable? (concat-r r)))]
     ))
 
 ;; Definition of omega regular expression
@@ -76,8 +76,9 @@
 
 ;; Enumerate regexp symbols using characters
 (define resymbol/e
-  (pam/e
+  (map/e
    symbol
+   symbol-c
    (take/e char/e sigma-size)
    #:contract symbol?))
 
@@ -88,30 +89,61 @@
     (single/e (eps))
     (single/e (empty))
     resymbol/e
-    (pam/e
+    (map/e
      mk-star
+     star-sub
      re/e
      #:contract regex?)
-    (pam/e
+    (map/e
      (λ (p) (mk-union (car p) (cdr p)))
+     (λ (r) (cons (union-l r) (union-r r)))
      (cons/e re/e re/e #:ordering cons/ordering)
      #:contract regex?)
-    (pam/e
+    (map/e
      (λ (p) (mk-concat (car p) (cdr p)))
+     (λ (r) (cons (concat-l r) (concat-r r)))
      (cons/e re/e re/e #:ordering cons/ordering)
      #:contract regex?)
-    )
-   #:two-way-enum? #f
-   ))
+    )))
+
+(define not-nullable-re/e
+  (delay/e
+   (or/e
+    (single/e (empty))
+    resymbol/e
+    (map/e
+     (λ (p) (mk-concat (car p) (cdr p)))
+     (λ (r) (cons (concat-l r) (concat-r r)))
+     (cons/e not-nullable-re/e re/e #:ordering cons/ordering)
+     #:contract regex?)
+    (map/e
+     (λ (p) (mk-concat (car p) (cdr p)))
+     (λ (r) (cons (concat-l r) (concat-r r)))
+     (cons/e re/e not-nullable-re/e #:ordering cons/ordering)
+     #:contract regex?)
+    (map/e
+     (λ (p) (mk-concat (car p) (cdr p)))
+     (λ (r) (cons (concat-l r) (concat-r r)))
+     (cons/e not-nullable-re/e not-nullable-re/e #:ordering cons/ordering)
+     #:contract regex?)
+     (map/e
+     (λ (p) (mk-union (car p) (cdr p)))
+     (λ (r) (cons (union-l r) (union-r r)))
+     (cons/e not-nullable-re/e not-nullable-re/e #:ordering cons/ordering)
+     #:contract regex?)
+     )))
 
 (define one-oreg/e
   (delay/e
-   (pam/e
+   (map/e
     (λ (p) (oreg (car p) (cdr p)))
-    (cons/e (except/e re/e nullable?) re/e #:ordering cons/ordering)
-    #:contract regex?)
-   #:two-way-enum? #f
+    (λ (r) (cons (oreg-l r) (oreg-r r)))
+    (cons/e re/e not-nullable-re/e #:ordering cons/ordering)
+    #:contract oreg?)
    ))
+
+(define oreg/e
+  (non-empty-listof/e one-oreg/e))
 
 ;; Pretty printer
 (define (pp re)
@@ -150,10 +182,18 @@
      (string-append "mkUnion(" (tojava (union-l re)) "," (tojava (union-r re)) ")")]
     [(concat? re)
      (string-append "mkConcat(" (tojava (concat-l re)) "," (tojava (concat-r re)) ")")]
+    ;; oreg
+    [(oreg? re)
+     (string-append "mkOReg(" (tojava (oreg-l re)) "," (tojava (oreg-r re)) ")")]
+    [(list? re)
+     (string-join (map tojava re) ",")]
     ))
 
 (define (random-re)
   (from-nat re/e (random-index re/e)))
+
+(define (random-oreg)
+  (from-nat oreg/e (random-index oreg/e)))
 
 (define (gen-random-re n)
   (if (= n 0)
