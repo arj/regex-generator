@@ -81,9 +81,9 @@
 (define (pp re)
   (cond
     [(empty? re)
-     "{}"]
+     "∅"]
     [(eps? re)
-     "#"]
+     "ε"]
     [(star? re)
      (string-append (pp (star-sub re)) "*")]
     [(symbol? re)
