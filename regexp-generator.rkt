@@ -115,22 +115,22 @@
      (λ (p) (mk-concat (car p) (cdr p)))
      (λ (r) (cons (concat-l r) (concat-r r)))
      (cons/e not-nullable-re/e re/e #:ordering cons/ordering)
-     #:contract regex?)
+     #:contract (and/c regex? (not/c nullable?)))
     (map/e
      (λ (p) (mk-concat (car p) (cdr p)))
      (λ (r) (cons (concat-l r) (concat-r r)))
      (cons/e re/e not-nullable-re/e #:ordering cons/ordering)
-     #:contract regex?)
+     #:contract (and/c regex? (not/c nullable?)))
     (map/e
      (λ (p) (mk-concat (car p) (cdr p)))
      (λ (r) (cons (concat-l r) (concat-r r)))
      (cons/e not-nullable-re/e not-nullable-re/e #:ordering cons/ordering)
-     #:contract regex?)
+     #:contract (and/c regex? (not/c nullable?)))
      (map/e
      (λ (p) (mk-union (car p) (cdr p)))
      (λ (r) (cons (union-l r) (union-r r)))
      (cons/e not-nullable-re/e not-nullable-re/e #:ordering cons/ordering)
-     #:contract regex?)
+     #:contract (and/c regex? (not/c nullable?)))
      )))
 
 (define one-oreg/e
