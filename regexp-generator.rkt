@@ -125,8 +125,7 @@
     ))
 
 (define (random-re)
-  (let ([x (- (random 4294967087) 1)])
-    (from-nat re/e x)))
+  (from-nat re/e (random-index re/e)))
 
 (define (gen-random-re n)
   (if (= n 0)
