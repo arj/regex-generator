@@ -126,12 +126,12 @@
      (λ (r) (cons (concat-l r) (concat-r r)))
      (cons/e not-nullable-re/e not-nullable-re/e #:ordering cons/ordering)
      #:contract (and/c regex? (not/c nullable?)))
-     (map/e
+    (map/e
      (λ (p) (mk-union (car p) (cdr p)))
      (λ (r) (cons (union-l r) (union-r r)))
      (cons/e not-nullable-re/e not-nullable-re/e #:ordering cons/ordering)
      #:contract (and/c regex? (not/c nullable?)))
-     )))
+    )))
 
 (define one-oreg/e
   (delay/e
@@ -200,10 +200,34 @@
       null
       (cons (random-re) (gen-random-re (- n 1)))))
 
+(define (gen-random-oreg n)
+  (if (= n 0)
+      null
+      (cons (random-oreg) (gen-random-oreg (- n 1)))))
+
+(define (add-to-set oreg)
+  (string-append
+   "      result.add("
+   (tojava oreg)
+   ");"
+   ))
+
+(define (create-java-test-prg n)
+  (let* ([oregs (map add-to-set (gen-random-oreg n))]
+         [creations (string-join oregs "\n")])
+    (string-append
+     "import java.util.Set;\n"
+     "import java.util.HashSet;\n"
+     "\n"
+     "public class ORegGenerator {\n"
+     "   public static Set<ORegExp> generate() {\n"
+     "      Set<ORegExp> result = new HashSet<ORegExp>();\n"
+     creations
+     "\n"
+     "\n"
+     "      return result;\n"
+     "   }\n"
+     "}\n")))
+
 (define (main . xs)
-  (for-each
-   (λ (x)
-     (begin
-       (display (pp x))
-       (newline)))
-   (enum->list re/e (string->number (car xs)))))
+  (display (create-java-test-prg 10000)))
